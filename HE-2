@@ -126,8 +126,8 @@ public class demo {
 	
 	
 	System.out.printf("第 %d 次计算\n",nums+1);
-	System.out.printf("y1:%.12f  y2:%.12f  %.12f\nY1:%.12f  Y2:%.12f   %.12f\n\n",y1,y2,(1-y1-y2),Y1,Y2,(1-Y1-Y2));
-	System.out.printf("x1:%.12f  x2:%.12f  %.12f\nX1:%.12f  X2:%.12f   %.12f\n",x1,x2,(1-x1-x2),X1,X2,(1-X1-X2));
+	System.out.printf("y1:%.12f  y2:%.12f  y3:%.12f\nY1:%.12f  Y2:%.12f   Y3:%.12f\n\n",y1,y2,(1-y1-y2),Y1,Y2,(1-Y1-Y2));
+	System.out.printf("x1:%.12f  x2:%.12f  x3:%.12f\nX1:%.12f  X2:%.12f   X3:%.12f\n",x1,x2,(1-x1-x2),X1,X2,(1-X1-X2));
 	
 	
 	//ns.printValues();
@@ -168,8 +168,8 @@ public class demo {
     	{
     		for(int j=0;j<A[0].length;j++)
     		{
-    			A[i][j]=pp.encrypt(new BigInteger(""+(int)(10000*a[i][j])));
-    			B[i][j]=pp.encrypt(new BigInteger(""+(int)(10000*b[i][j])));
+    			A[i][j]=pp.encrypt(new BigInteger(""+(int)(100000*a[i][j])));
+    			B[i][j]=pp.encrypt(new BigInteger(""+(int)(100000*b[i][j])));
     		}
     	}
     	
