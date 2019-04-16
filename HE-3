@@ -1,0 +1,420 @@
+
+import java.math.BigInteger;
+import java.util.*;
+
+
+public class demo {
+ public static void main(String[] args) throws Exception {
+	double loss=0.0;
+	for(int nums=0;nums<10;nums++) {
+	Random random=new Random();
+	
+	double [][]a=new double[3][3];
+	double [][]b=new double[3][3];
+	for (int i=0;i<a.length;i++)
+	{
+		for(int j=0;j<a[0].length;j++)
+		{
+			a[i][j]=random.nextDouble()*1024;
+			b[i][j]=random.nextDouble()*1024;
+		}
+	}
+	
+	//明文计算纳什均衡
+	double aA=a[0][0]-a[2][0]-a[0][2]+a[2][2];
+	double aB=a[0][1]-a[2][1]-a[0][2]+a[2][2];
+	double aC=a[0][2]-a[2][2];
+	double aD=a[1][0]-a[2][0]-a[1][2]+a[2][2];
+	double aE=a[1][1]-a[2][1]-a[1][2]+a[2][2];
+	double aF=a[1][2]-a[2][2];
+	
+	double y1=(aB*aF-aC*aE)/(aA*aE-aD*aB);
+	double y2=(aF*aA-aC*aD)/(-aA*aE+aD*aB);
+	
+	double bA=b[0][0]-b[2][0]-b[0][2]+b[2][2];
+	double bB=b[1][0]-b[2][0]-b[1][2]+b[2][2];
+	double bC=b[2][0]-b[2][2];
+	double bD=b[0][1]-b[2][1]-b[0][2]+b[2][2];
+	double bE=b[1][1]-b[2][1]-b[1][2]+b[2][2];
+	double bF=b[2][1]-b[2][2];
+	
+	double x1=(bB*bF-bC*bE)/(bA*bE-bD*bB);
+	double x2=(bF*bA-bC*bD)/(-bA*bE+bD*bB);
+	
+	
+	
+	BigInteger [][]A=new BigInteger [3][3];
+	BigInteger [][]B=new BigInteger [3][3];
+	
+	
+	Paillier ns=new Paillier();
+	ns.creatpayoff(A, B,a,b,ns);//加密payoff
+	//加密域内计算B的纳什均衡
+	BigInteger AA=ns.addBig(ns, A[0][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+	BigInteger AB=ns.addBig(ns, A[0][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+	BigInteger AC=ns.addBig(ns, A[0][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+	BigInteger AD=ns.addBig(ns, A[1][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+	BigInteger AE=ns.addBig(ns, A[1][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+	BigInteger AF=ns.addBig(ns, A[1][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+ 
+	double noisy=random.nextDouble()+1;//乘性噪声
+	//(aB*aF-aC*aE)/(aA*aE-aD*aB)
+	BigInteger m1=ns.addBig(ns, ns.mulBig(AB, ns.decrypt(AF, ns), ns), ns.mulBig(ns.mulBig(AC, ns.decrypt(AE, ns), ns), new BigInteger("-1"), ns));
+	BigInteger m2=ns.addBig(ns, ns.mulBig(AA, ns.decrypt(AE, ns), ns), ns.mulBig(ns.mulBig(AD, ns.decrypt(AB, ns), ns), new BigInteger("-1"), ns));
+	
+	int r1=Math.abs(random.nextInt());
+	int Q1=Math.abs(random.nextInt());
+	BigInteger r=new BigInteger(""+r1);
+	BigInteger Q=new BigInteger(""+Q1);
+	BigInteger S=r.multiply(Q);
+	BigInteger C6=ns.mulBig(m2, r, ns);
+	BigInteger m3=ns.decrypt(C6, ns);
+	int  temp=(int)(S.doubleValue()/m3.doubleValue());
+	BigInteger C4=new  BigInteger(""+temp);
+	BigInteger C3=ns.mulBig(m1, C4, ns);
+	
+	double YY1=ns.decrypt(C3, ns).doubleValue()/Q.doubleValue();
+	
+	
+	double Y1=ns.decrypt(m1, ns).doubleValue()/ns.decrypt(m2, ns).doubleValue();
+//	double Y1=((ns.decrypt(AB,ns).doubleValue())*
+//			(ns.decrypt(AF,ns).doubleValue())-
+//			(ns.decrypt(AC,ns).doubleValue())*
+//			(ns.decrypt(AE,ns).doubleValue()))
+//			/
+//					((ns.decrypt(AA,ns).doubleValue())*
+//					(ns.decrypt(AE,ns).doubleValue())-
+//					(ns.decrypt(AD,ns).doubleValue())*
+//					(ns.decrypt(AB,ns).doubleValue()));
+
+	//	(aF*aA-aC*aD)/(-aA*aE+aD*aB)
+	double Y2=((ns.decrypt(AF,ns).doubleValue())*
+			(ns.decrypt(AA,ns).doubleValue())-
+			(ns.decrypt(AC,ns).doubleValue())*
+			(ns.decrypt(AD,ns).doubleValue()))
+			/
+					((ns.decrypt(AD,ns).doubleValue())*
+					(ns.decrypt(AB,ns).doubleValue())-
+					(ns.decrypt(AA,ns).doubleValue())*
+					(ns.decrypt(AE,ns).doubleValue())
+			        );
+	
+//	//X
+//	double bA=b[0][0]-b[2][0]-b[0][2]+b[2][2];
+//	double bB=b[1][0]-b[2][0]-b[1][2]+b[2][2];
+//	double bC=b[2][0]-b[2][2];
+//	double bD=b[0][1]-b[2][1]-b[0][2]+b[2][2];
+//	double bE=b[1][1]-b[2][1]-b[1][2]+b[2][2];
+//	double bF=b[2][1]-b[2][2];
+//	
+//	double x1=(bB*bF-bC*bE)/(bA*bE-bD*bB);
+//	double x2=(bF*bA-bC*bD)/(-bA*bE+bD*bB);
+	BigInteger BA=ns.addBig(ns, B[0][0], ns.mulBig(B[2][0], new BigInteger("-1"), ns),ns.mulBig(B[0][2], new BigInteger("-1"), ns),B[2][2]);
+	BigInteger BB=ns.addBig(ns, B[1][0], ns.mulBig(B[2][0], new BigInteger("-1"), ns),ns.mulBig(B[1][2], new BigInteger("-1"), ns),B[2][2]);
+	BigInteger BC=ns.addBig(ns, B[2][0], ns.mulBig(B[2][2], new BigInteger("-1"), ns));
+	BigInteger BD=ns.addBig(ns, B[0][1], ns.mulBig(B[2][1], new BigInteger("-1"), ns),ns.mulBig(B[0][2], new BigInteger("-1"), ns),B[2][2]);
+	BigInteger BE=ns.addBig(ns, B[1][1], ns.mulBig(B[2][1], new BigInteger("-1"), ns),ns.mulBig(B[1][2], new BigInteger("-1"), ns),B[2][2]);
+	BigInteger BF=ns.addBig(ns, B[2][1], ns.mulBig(B[2][2], new BigInteger("-1"), ns));
+ 
+	
+	//(aB*aF-aC*aE)/(aA*aE-aD*aB)
+	double X1=((ns.decrypt(BB,ns).doubleValue())*
+			(ns.decrypt(BF,ns).doubleValue())-
+			(ns.decrypt(BC,ns).doubleValue())*
+			(ns.decrypt(BE,ns).doubleValue()))
+			/
+					((ns.decrypt(BA,ns).doubleValue())*
+					(ns.decrypt(BE,ns).doubleValue())-
+					(ns.decrypt(BD,ns).doubleValue())*
+					(ns.decrypt(BB,ns).doubleValue()));
+//	//(aF*aA-aC*aD)/(-aA*aE+aD*aB)
+	double X2=((ns.decrypt(BF,ns).doubleValue())*
+			(ns.decrypt(BA,ns).doubleValue())-
+			(ns.decrypt(BC,ns).doubleValue())*
+			(ns.decrypt(BD,ns).doubleValue()))
+			/
+					((ns.decrypt(BD,ns).doubleValue())*
+					(ns.decrypt(BB,ns).doubleValue())-
+					(ns.decrypt(BA,ns).doubleValue())*
+					(ns.decrypt(BE,ns).doubleValue())
+			        );
+//	
+	
+	
+   	 
+//	int test=random.nextInt();
+//	BigInteger Test1=new BigInteger(""+test);
+//	
+//	BigInteger TT=ns.encrypt(Test1,ns);
+//	BigInteger DT=ns.decrypt(TT, ns);
+//	
+//	System.out.println("test:"+test);
+//	System.out.println("DT:"+DT);
+	
+	System.out.println("dem2:"+YY1);
+	System.out.println("dem1:"+Y1);
+//	System.out.printf("y1:%.12f  y2:%.12f  y3:%.12f\nY1:%.12f  Y2:%.12f   Y3:%.12f\n\n",y1,y2,(1-y1-y2),Y1,Y2,(1-Y1-Y2));
+//	System.out.printf("x1:%.12f  x2:%.12f  x3:%.12f\nX1:%.12f  X2:%.12f   X3:%.12f\n",x1,x2,(1-x1-x2),X1,X2,(1-X1-X2));
+//	
+//	
+//	//ns.printValues();
+//	loss+=Math.abs(X1-x1)+Math.abs(X2-X2)+Math.abs(y1-Y1)+Math.abs(y2-Y2);//计算误差
+	}
+	
+//	 System.out.println("总误差："+loss);
+	
+	
+	
+}
+}
+ class Paillier {
+    private final int CERTAINTY = 64;       // certainty with which primes are generated: 1-2^(-CERTAINTY)
+    private int modLength=1024;                  // length in bits of the modulus n
+    private BigInteger p;                   // a random prime
+    private BigInteger q;                   // a random prime (distinct from p)
+    private BigInteger lambda;              // lambda = lcm(p-1, q-1) = (p-1)*(q-1)/gcd(p-1, q-1)
+    private BigInteger n;                   // n = p*q
+    private BigInteger nsquare;             // nsquare = n*n
+    private BigInteger g;                   // a random integer in Z*_{n^2}
+    private BigInteger mu;                  // mu = (L(g^lambda mod n^2))^{-1} mod n, where L(u) = (u-1)/n
+    Random random=new Random();
+    public Paillier()
+    {
+    generateKeys();	
+    }
+//    public Paillier(int modLengthIn) throws Exception {
+//        if (modLengthIn < 8)
+//            throw new Exception("Paillier(int modLength): modLength must be >= 8");
+//
+//        modLength = modLengthIn;
+//
+//        generateKeys();
+//    }
+    public void creatpayoff(BigInteger[][]A,BigInteger[][]B,double [][]a,double [][]b,Paillier pp) throws Exception {
+    	for (int i=0;i<A.length;i++)
+    	{
+    		for(int j=0;j<A[0].length;j++)
+    		{
+    			A[i][j]=pp.encrypt(new BigInteger(""+(int)(100000*a[i][j])),pp);
+    			B[i][j]=pp.encrypt(new BigInteger(""+(int)(100000*b[i][j])),pp);
+    		}
+    	}
+    	
+    }
+
+    public BigInteger getP() {
+        return p;
+    }
+
+    public BigInteger getQ() {
+        return q;
+    }
+
+    public BigInteger getLambda() {
+        return lambda;
+    }
+
+    public int getModLength() {
+        return modLength;
+    }
+
+    public static BigInteger addBig(Paillier pp,BigInteger input_a, BigInteger... input) throws Exception {
+        for(BigInteger in:input)
+        {
+        	input_a=input_a.multiply(in).mod(pp.getNsquare());
+        }
+    	return input_a;
+    }
+
+    public static BigInteger mulBig(BigInteger input_a, BigInteger input_b, Paillier pp) throws Exception {
+        if (input_b.compareTo(BigInteger.ZERO)<0)
+        	input_b=input_b.add(pp.getNsquare()).mod(pp.getNsquare());
+    	return input_a.modPow(input_b, pp.getNsquare()).mod(pp.getNsquare());
+    }
+
+    public BigInteger getN() {
+        return n;
+    }
+
+    public BigInteger getNsquare() {
+        return nsquare;
+    }
+
+    public BigInteger getG() {
+        return g;
+    }
+
+    public BigInteger getMu() {
+        return mu;
+    }
+
+    public void generateKeys() {
+        p = new BigInteger(modLength / 2, CERTAINTY, new Random());     // a random prime
+
+        do {
+            q = new BigInteger(modLength / 2, CERTAINTY, new Random()); // a random prime (distinct from p)
+        }
+        while (q.compareTo(p) == 0);
+
+        // lambda = lcm(p-1, q-1) = (p-1)*(q-1)/gcd(p-1, q-1)
+        lambda = (p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE))).divide(
+                p.subtract(BigInteger.ONE).gcd(q.subtract(BigInteger.ONE)));
+
+        n = p.multiply(q);              // n = p*q
+        nsquare = n.multiply(n);        // nsquare = n*n
+
+        do {
+            // generate g, a random integer in Z*_{n^2}
+            g = randomZStarNSquare();
+        }
+        // verify g, the following must hold: gcd(L(g^lambda mod n^2), n) = 1, where L(u) = (u-1)/n
+        while (g.modPow(lambda, nsquare).subtract(BigInteger.ONE).divide(n).gcd(n).intValue() != 1);
+
+        // mu = (L(g^lambda mod n^2))^{-1} mod n, where L(u) = (u-1)/n
+        mu = g.modPow(lambda, nsquare).subtract(BigInteger.ONE).divide(n).modInverse(n);
+    }
+
+    public BigInteger encrypt(BigInteger m,Paillier pp) throws Exception {
+        // if m is not in Z_n
+        //System.out.println("oye");
+//        if (m.compareTo(BigInteger.ZERO) < 0 || m.compareTo(n) >= 0) {
+//            throw new Exception("Paillier.encrypt(BigInteger m): plaintext m is not in Z_n");
+//        }
+        if ( m.compareTo(n) >= 0) {
+            throw new Exception("Paillier.encrypt(BigInteger m): plaintext m is not in Z_n");
+        }
+       if(m.compareTo(BigInteger.ZERO)<0)
+    	   m=m.add(pp.getN());
+        // generate r, a random integer in Z*_n
+        BigInteger r = randomZStarN();
+
+        // c = g^m * r^n mod n^2
+        return (g.modPow(m, nsquare).multiply(r.modPow(n, nsquare))).mod(nsquare);
+    }
+
+    public BigInteger encrypt(BigInteger m, BigInteger r) throws Exception {
+        // if m is not in Z_n
+        if (m.compareTo(BigInteger.ZERO) < 0 || m.compareTo(n) >= 0) {
+            throw new Exception("Paillier.encrypt(BigInteger m, BigInteger r): plaintext m is not in Z_n");
+        }
+
+        // if r is not in Z*_n
+        if (r.compareTo(BigInteger.ZERO) < 0 || r.compareTo(n) >= 0 || r.gcd(n).intValue() != 1) {
+            throw new Exception("Paillier.encrypt(BigInteger m, BigInteger r): random integer r is not in Z*_n");
+        }
+
+        // c = g^m * r^n mod n^2
+        return (g.modPow(m, nsquare).multiply(r.modPow(n, nsquare))).mod(nsquare);
+    }
+
+    public BigInteger decrypt(BigInteger c,Paillier pp) throws Exception {
+        // if c is not in Z*_{n^2}
+        if (c.compareTo(BigInteger.ZERO) < 0 || c.compareTo(nsquare) >= 0 || c.gcd(nsquare).intValue() != 1) {
+            System.out.println(c);
+            throw new Exception("Paillier.decrypt(BigInteger c): ciphertext c is not in Z*_{n^2}" + c);
+        }
+        BigInteger preD=c.modPow(lambda, nsquare).subtract(BigInteger.ONE).divide(n).multiply(mu).mod(n);
+        if(preD.compareTo(pp.getN().divide(new BigInteger("2")))>0)
+        {
+        	return preD.subtract(pp.getN());
+        }
+        // m = L(c^lambda mod n^2) * mu mod n, where L(u) = (u-1)/n
+        return preD;
+    }
+
+    public static BigInteger PTimes(BigInteger a, BigInteger b, Paillier pp) throws Exception {
+        String R1 = String.valueOf((int) (Math.random() * 100));
+        String R2 = String.valueOf((int) (Math.random() * 100));
+        BigInteger r1 = pp.encrypt(new BigInteger(R1),pp);
+        BigInteger r2 = pp.encrypt(new BigInteger(R2),pp);
+        BigInteger temp1 = Paillier.addBig(pp,a, r1);
+        BigInteger temp2 = Paillier.addBig(pp,b, r2);
+        BigInteger DTemp1 = pp.decrypt(temp1,pp);
+        BigInteger DTemp2 = pp.decrypt(temp2,pp);
+        BigInteger temp3 = DTemp1.multiply(DTemp2);
+        BigInteger ar2 = pp.decrypt(Paillier.mulBig(a, new BigInteger(R2), pp),pp);
+        BigInteger br1 = pp.decrypt(Paillier.mulBig(b, new BigInteger(R1), pp),pp);
+        BigInteger r1r2 = (new BigInteger(R1)).multiply(new BigInteger(R2));
+        return pp.encrypt(temp3.subtract(ar2).subtract(br1).subtract(r1r2),pp);
+    }
+
+    public static BigInteger Bob(BigInteger a, BigInteger b, Paillier pp) throws Exception {
+        BigInteger aPlusR1, bPlusR2;
+        aPlusR1 = pp.decrypt(a,pp);
+        bPlusR2 = pp.decrypt(b,pp);
+        return aPlusR1.multiply(bPlusR2);
+    }
+
+    public static BigInteger Alice(BigInteger a, BigInteger b, Paillier pp) throws Exception {
+        String R1 = String.valueOf((int) (Math.random() * 100));
+        String R2 = String.valueOf((int) (Math.random() * 100));
+        BigInteger r1 = pp.encrypt(new BigInteger(R1),pp);
+        BigInteger r2 = pp.encrypt(new BigInteger(R2),pp);
+        BigInteger temp1 = Paillier.addBig(pp,a, r1);
+        BigInteger temp2 = Paillier.addBig(pp,b, r2);
+        BigInteger temp3 = Bob(temp1, temp2, pp);
+        BigInteger ar2 = pp.decrypt(Paillier.mulBig(a, new BigInteger(R2), pp),pp);
+        BigInteger br1 = pp.decrypt(Paillier.mulBig(b, new BigInteger(R1), pp),pp);
+        BigInteger r1r2 = (new BigInteger(R1)).multiply(new BigInteger(R2));
+        return temp3.subtract(ar2).subtract(br1).subtract(r1r2);
+    }
+
+    public static BigInteger PtimesCom(BigInteger a, BigInteger b, Paillier pp) throws Exception {
+        return Alice(a, b, pp);
+    }
+
+    public void printValues() {
+        System.out.println("p:       " + p);
+        System.out.println("q:       " + q);
+        System.out.println("lambda:  " + lambda);
+        System.out.println("n:       " + n);
+        System.out.println("nsquare: " + nsquare);
+        System.out.println("g:       " + g);
+        System.out.println("mu:      " + mu);
+    }
+
+    // return a random integer in Z_n
+    public BigInteger randomZN() {
+        BigInteger r;
+
+        do {
+            r = new BigInteger(modLength, new Random());
+        }
+        while (r.compareTo(BigInteger.ZERO) <= 0 || r.compareTo(n) >= 0);
+
+        return r;
+    }
+
+    // return a random integer in Z*_n
+    public BigInteger randomZStarN() {
+        BigInteger r;
+
+        do {
+            r = new BigInteger(modLength, new Random());
+        }
+        while (r.compareTo(n) >= 0 || r.gcd(n).intValue() != 1);
+
+        return r;
+    }
+
+    // return a random integer in Z*_{n^2}
+    public BigInteger randomZStarNSquare() {
+        BigInteger r;
+
+        do {
+            r = new BigInteger(modLength * 2, new Random());
+        }
+        while (r.compareTo(nsquare) >= 0 || r.gcd(nsquare).intValue() != 1);
+
+        return r;
+    }
+
+    // return public key as the vector <n, g>
+    public Vector publicKey() {
+        Vector pubKey = new Vector();
+        pubKey.add(n);
+        pubKey.add(g);
+
+        return pubKey;
+    }
+}
