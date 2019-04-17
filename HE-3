@@ -6,7 +6,7 @@ import java.util.*;
 public class demo {
  public static void main(String[] args) throws Exception {
 	double loss=0.0;
-	for(int nums=0;nums<10;nums++) {
+	for(int nums=0;nums<100;nums++) {
 	Random random=new Random();
 	
 	double [][]a=new double[3][3];
@@ -59,24 +59,17 @@ public class demo {
  
 	double noisy=random.nextDouble()+1;//乘性噪声
 	//(aB*aF-aC*aE)/(aA*aE-aD*aB)
-	BigInteger m1=ns.addBig(ns, ns.mulBig(AB, ns.decrypt(AF, ns), ns), ns.mulBig(ns.mulBig(AC, ns.decrypt(AE, ns), ns), new BigInteger("-1"), ns));
-	BigInteger m2=ns.addBig(ns, ns.mulBig(AA, ns.decrypt(AE, ns), ns), ns.mulBig(ns.mulBig(AD, ns.decrypt(AB, ns), ns), new BigInteger("-1"), ns));
-	
-	int r1=Math.abs(random.nextInt());
-	int Q1=Math.abs(random.nextInt());
-	BigInteger r=new BigInteger(""+r1);
-	BigInteger Q=new BigInteger(""+Q1);
-	BigInteger S=r.multiply(Q);
-	BigInteger C6=ns.mulBig(m2, r, ns);
-	BigInteger m3=ns.decrypt(C6, ns);
-	int  temp=(int)(S.doubleValue()/m3.doubleValue());
-	BigInteger C4=new  BigInteger(""+temp);
-	BigInteger C3=ns.mulBig(m1, C4, ns);
-	
-	double YY1=ns.decrypt(C3, ns).doubleValue()/Q.doubleValue();
+	BigInteger m1_y1=ns.addBig(ns, ns.mulBig(AB, ns.decrypt(AF, ns), ns), ns.mulBig(ns.mulBig(AC, ns.decrypt(AE, ns), ns), new BigInteger("-1"), ns));
+	BigInteger m2_y1=ns.addBig(ns, ns.mulBig(AA, ns.decrypt(AE, ns), ns), ns.mulBig(ns.mulBig(AD, ns.decrypt(AB, ns), ns), new BigInteger("-1"), ns));
 	
 	
-	double Y1=ns.decrypt(m1, ns).doubleValue()/ns.decrypt(m2, ns).doubleValue();
+	BigInteger r_y1=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+	BigInteger Q_y1=r_y1.multiply(new BigInteger(128, 64, new Random()));
+	BigInteger YY1=PSP(m1_y1,m2_y1,r_y1,Q_y1,ns);  					 //除法结果Q*（m1/m2）
+	double Y1=YY1.doubleValue()/Q_y1.doubleValue();        //结果
+	 
+	
+//	double Y1=ns.decrypt(m1, ns).doubleValue()/ns.decrypt(m2, ns).doubleValue();
 //	double Y1=((ns.decrypt(AB,ns).doubleValue())*
 //			(ns.decrypt(AF,ns).doubleValue())-
 //			(ns.decrypt(AC,ns).doubleValue())*
@@ -88,25 +81,26 @@ public class demo {
 //					(ns.decrypt(AB,ns).doubleValue()));
 
 	//	(aF*aA-aC*aD)/(-aA*aE+aD*aB)
-	double Y2=((ns.decrypt(AF,ns).doubleValue())*
-			(ns.decrypt(AA,ns).doubleValue())-
-			(ns.decrypt(AC,ns).doubleValue())*
-			(ns.decrypt(AD,ns).doubleValue()))
-			/
-					((ns.decrypt(AD,ns).doubleValue())*
-					(ns.decrypt(AB,ns).doubleValue())-
-					(ns.decrypt(AA,ns).doubleValue())*
-					(ns.decrypt(AE,ns).doubleValue())
-			        );
+	BigInteger m1_Y2=ns.addBig(ns, ns.mulBig(AF, ns.decrypt(AA, ns), ns), ns.mulBig(ns.mulBig(AC, ns.decrypt(AD, ns), ns), new BigInteger("-1"), ns));
+	BigInteger m2_Y2=ns.addBig(ns, ns.mulBig(AD, ns.decrypt(AB, ns), ns), ns.mulBig(ns.mulBig(AA, ns.decrypt(AE, ns), ns), new BigInteger("-1"), ns));
 	
-//	//X
-//	double bA=b[0][0]-b[2][0]-b[0][2]+b[2][2];
-//	double bB=b[1][0]-b[2][0]-b[1][2]+b[2][2];
-//	double bC=b[2][0]-b[2][2];
-//	double bD=b[0][1]-b[2][1]-b[0][2]+b[2][2];
-//	double bE=b[1][1]-b[2][1]-b[1][2]+b[2][2];
-//	double bF=b[2][1]-b[2][2];
-//	
+	
+	BigInteger r_Y2=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+	BigInteger Q_Y2=r_Y2.multiply(new BigInteger(128, 64, new Random()));
+	BigInteger YY2=PSP(m1_Y2,m2_Y2,r_Y2,Q_Y2,ns);  					 //除法结果Q*（m1/m2）
+	double Y2=YY2.doubleValue()/Q_Y2.doubleValue(); 
+	
+//	double Y2=((ns.decrypt(AF,ns).doubleValue())*
+//			(ns.decrypt(AA,ns).doubleValue())-
+//			(ns.decrypt(AC,ns).doubleValue())*
+//			(ns.decrypt(AD,ns).doubleValue()))
+//			/
+//					((ns.decrypt(AD,ns).doubleValue())*
+//					(ns.decrypt(AB,ns).doubleValue())-
+//					(ns.decrypt(AA,ns).doubleValue())*
+//					(ns.decrypt(AE,ns).doubleValue())
+//			        );
+
 //	double x1=(bB*bF-bC*bE)/(bA*bE-bD*bB);
 //	double x2=(bF*bA-bC*bD)/(-bA*bE+bD*bB);
 	BigInteger BA=ns.addBig(ns, B[0][0], ns.mulBig(B[2][0], new BigInteger("-1"), ns),ns.mulBig(B[0][2], new BigInteger("-1"), ns),B[2][2]);
@@ -117,55 +111,68 @@ public class demo {
 	BigInteger BF=ns.addBig(ns, B[2][1], ns.mulBig(B[2][2], new BigInteger("-1"), ns));
  
 	
-	//(aB*aF-aC*aE)/(aA*aE-aD*aB)
-	double X1=((ns.decrypt(BB,ns).doubleValue())*
-			(ns.decrypt(BF,ns).doubleValue())-
-			(ns.decrypt(BC,ns).doubleValue())*
-			(ns.decrypt(BE,ns).doubleValue()))
-			/
-					((ns.decrypt(BA,ns).doubleValue())*
-					(ns.decrypt(BE,ns).doubleValue())-
-					(ns.decrypt(BD,ns).doubleValue())*
-					(ns.decrypt(BB,ns).doubleValue()));
+	
+	BigInteger m1_X1=ns.addBig(ns, ns.mulBig(BF, ns.decrypt(BB, ns), ns), ns.mulBig(ns.mulBig(BC, ns.decrypt(BE, ns), ns), new BigInteger("-1"), ns));
+	BigInteger m2_X1=ns.addBig(ns, ns.mulBig(BA, ns.decrypt(BE, ns), ns), ns.mulBig(ns.mulBig(BB, ns.decrypt(BD, ns), ns), new BigInteger("-1"), ns));
+	
+	
+	BigInteger r_X1=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+	BigInteger Q_X1=r_X1.multiply(new BigInteger(128, 64, new Random()));
+	BigInteger XX1=PSP(m1_X1,m2_X1,r_X1,Q_X1,ns);  					 //除法结果Q*（m1/m2）
+	double X1=XX1.doubleValue()/Q_X1.doubleValue(); 
+//	double X1=((ns.decrypt(BB,ns).doubleValue())*
+//			(ns.decrypt(BF,ns).doubleValue())-
+//			(ns.decrypt(BC,ns).doubleValue())*
+//			(ns.decrypt(BE,ns).doubleValue()))
+//			/
+//					((ns.decrypt(BA,ns).doubleValue())*
+//					(ns.decrypt(BE,ns).doubleValue())-
+//					(ns.decrypt(BD,ns).doubleValue())*
+//					(ns.decrypt(BB,ns).doubleValue()));
 //	//(aF*aA-aC*aD)/(-aA*aE+aD*aB)
-	double X2=((ns.decrypt(BF,ns).doubleValue())*
-			(ns.decrypt(BA,ns).doubleValue())-
-			(ns.decrypt(BC,ns).doubleValue())*
-			(ns.decrypt(BD,ns).doubleValue()))
-			/
-					((ns.decrypt(BD,ns).doubleValue())*
-					(ns.decrypt(BB,ns).doubleValue())-
-					(ns.decrypt(BA,ns).doubleValue())*
-					(ns.decrypt(BE,ns).doubleValue())
-			        );
+	BigInteger m1_X2=ns.addBig(ns, ns.mulBig(BF, ns.decrypt(BA, ns), ns), ns.mulBig(ns.mulBig(BC, ns.decrypt(BD, ns), ns), new BigInteger("-1"), ns));
+	BigInteger m2_X2=ns.addBig(ns, ns.mulBig(BD, ns.decrypt(BB, ns), ns), ns.mulBig(ns.mulBig(BA, ns.decrypt(BE, ns), ns), new BigInteger("-1"), ns));
+	
+	
+	BigInteger r_X2=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+	BigInteger Q_X2=r_X2.multiply(new BigInteger(128, 64, new Random()));
+	BigInteger XX2=PSP(m1_X2,m2_X2,r_X2,Q_X2,ns);  					 //除法结果Q*（m1/m2）
+	double X2=XX2.doubleValue()/Q_X2.doubleValue(); 
+//	double X2=((ns.decrypt(BF,ns).doubleValue())*
+//			(ns.decrypt(BA,ns).doubleValue())-
+//			(ns.decrypt(BC,ns).doubleValue())*
+//			(ns.decrypt(BD,ns).doubleValue()))
+//			/
+//					((ns.decrypt(BD,ns).doubleValue())*
+//					(ns.decrypt(BB,ns).doubleValue())-
+//					(ns.decrypt(BA,ns).doubleValue())*
+//					(ns.decrypt(BE,ns).doubleValue())
+//			        );
 //	
 	
 	
    	 
-//	int test=random.nextInt();
-//	BigInteger Test1=new BigInteger(""+test);
-//	
-//	BigInteger TT=ns.encrypt(Test1,ns);
-//	BigInteger DT=ns.decrypt(TT, ns);
-//	
-//	System.out.println("test:"+test);
-//	System.out.println("DT:"+DT);
-	
-	System.out.println("dem2:"+YY1);
-	System.out.println("dem1:"+Y1);
-//	System.out.printf("y1:%.12f  y2:%.12f  y3:%.12f\nY1:%.12f  Y2:%.12f   Y3:%.12f\n\n",y1,y2,(1-y1-y2),Y1,Y2,(1-Y1-Y2));
-//	System.out.printf("x1:%.12f  x2:%.12f  x3:%.12f\nX1:%.12f  X2:%.12f   X3:%.12f\n",x1,x2,(1-x1-x2),X1,X2,(1-X1-X2));
-//	
-//	
-//	//ns.printValues();
-//	loss+=Math.abs(X1-x1)+Math.abs(X2-X2)+Math.abs(y1-Y1)+Math.abs(y2-Y2);//计算误差
+	System.out.printf("y1:%.12f  y2:%.12f  y3:%.12f\nY1:%.12f  Y2:%.12f   Y3:%.12f\n",y1,y2,(1-y1-y2),Y1,Y2,(1-Y1-Y2));
+	System.out.printf("x1:%.12f  x2:%.12f  x3:%.12f\nX1:%.12f  X2:%.12f   X3:%.12f\n\n",x1,x2,(1-x1-x2),X1,X2,(1-X1-X2));
+	loss+=Math.abs(X1-x1)+Math.abs(X2-X2)+Math.abs(y1-Y1)+Math.abs(y2-Y2);//计算误差
 	}
 	
-//	 System.out.println("总误差："+loss);
+	 System.out.println("100次总误差："+loss);
 	
 	
 	
 }
+ public static BigInteger PSP(BigInteger m1,BigInteger m2,BigInteger r,BigInteger Q,Paillier ns) throws Exception
+ {  
+
+	BigInteger S=r.multiply(Q);
+	BigInteger C6=ns.mulBig(m2, r, ns);
+	BigInteger m3=ns.decrypt(C6, ns);
+	BigInteger  temp=S.divide(m3);
+	BigInteger C4=new  BigInteger(""+temp);
+	BigInteger C3=ns.mulBig(m1, C4, ns);	
+	return ns.decrypt(C3, ns);
+ }
 }
  class Paillier {
     private final int CERTAINTY = 64;       // certainty with which primes are generated: 1-2^(-CERTAINTY)
