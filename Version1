@@ -1,0 +1,179 @@
+package nimadebi;
+
+import java.math.BigInteger;
+import java.util.Random;
+
+
+public class version1 {
+	 public static void main(String[] args) throws Exception {
+		double loss=0.0;
+		for(int nums=0;nums<1;) {
+		Random random=new Random();
+		
+		double [][]a=new double[3][3];
+		double [][]b=new double[3][3];
+		for (int i=0;i<a.length;i++)
+		{
+			for(int j=0;j<a[0].length;j++)
+			{
+				a[i][j]=random.nextDouble()*1024;
+				b[i][j]=random.nextDouble()*1024;
+			}
+		}
+		
+		//明文计算纳什均衡
+		double aA=a[0][0]-a[2][0]-a[0][2]+a[2][2];
+		double aB=a[0][1]-a[2][1]-a[0][2]+a[2][2];
+		double aC=a[0][2]-a[2][2];
+		double aD=a[1][0]-a[2][0]-a[1][2]+a[2][2];
+		double aE=a[1][1]-a[2][1]-a[1][2]+a[2][2];
+		double aF=a[1][2]-a[2][2];
+		
+		double y1=(aB*aF-aC*aE)/(aA*aE-aD*aB);
+		double y2=(aF*aA-aC*aD)/(-aA*aE+aD*aB);
+		
+		double bA=b[0][0]-b[2][0]-b[0][2]+b[2][2];
+		double bB=b[1][0]-b[2][0]-b[1][2]+b[2][2];
+		double bC=b[2][0]-b[2][2];
+		double bD=b[0][1]-b[2][1]-b[0][2]+b[2][2];
+		double bE=b[1][1]-b[2][1]-b[1][2]+b[2][2];
+		double bF=b[2][1]-b[2][2];
+		
+		double x1=(bB*bF-bC*bE)/(bA*bE-bD*bB);
+		double x2=(bF*bA-bC*bD)/(-bA*bE+bD*bB);
+		
+		
+		
+		BigInteger [][]A=new BigInteger [3][3];
+		BigInteger [][]B=new BigInteger [3][3];
+		
+		
+		Paillier ns=new Paillier();
+		ns.creatpayoff(A, B,a,b,ns);//加密payoff
+		//加密域内计算B的纳什均衡
+		BigInteger AA=ns.addBig(ns, A[0][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AB=ns.addBig(ns, A[0][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AC=ns.addBig(ns, A[0][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+		BigInteger AD=ns.addBig(ns, A[1][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AE=ns.addBig(ns, A[1][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AF=ns.addBig(ns, A[1][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+	 
+		double noisy=random.nextDouble()+1;//乘性噪声
+		//(aB*aF-aC*aE)/(aA*aE-aD*aB)
+		BigInteger m1_y1=ns.addBig(ns, ns.mulBig(AB, ns.decrypt(AF, ns), ns), ns.mulBig(ns.mulBig(AC, ns.decrypt(AE, ns), ns), new BigInteger("-1"), ns));
+		BigInteger m2_y1=ns.addBig(ns, ns.mulBig(AA, ns.decrypt(AE, ns), ns), ns.mulBig(ns.mulBig(AD, ns.decrypt(AB, ns), ns), new BigInteger("-1"), ns));
+		
+		
+		BigInteger r_y1=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+		BigInteger Q_y1=r_y1.multiply(new BigInteger(128, 64, new Random()));
+		BigInteger YY1=PSP(m1_y1,m2_y1,r_y1,Q_y1,ns);  					 //除法结果Q*（m1/m2）
+		double Y1=YY1.doubleValue()/Q_y1.doubleValue();        //结果
+		 
+		
+//		double Y1=ns.decrypt(m1, ns).doubleValue()/ns.decrypt(m2, ns).doubleValue();
+//		double Y1=((ns.decrypt(AB,ns).doubleValue())*
+//				(ns.decrypt(AF,ns).doubleValue())-
+//				(ns.decrypt(AC,ns).doubleValue())*
+//				(ns.decrypt(AE,ns).doubleValue()))
+//				/
+//						((ns.decrypt(AA,ns).doubleValue())*
+//						(ns.decrypt(AE,ns).doubleValue())-
+//						(ns.decrypt(AD,ns).doubleValue())*
+//						(ns.decrypt(AB,ns).doubleValue()));
+
+		//	(aF*aA-aC*aD)/(-aA*aE+aD*aB)
+		BigInteger m1_Y2=ns.addBig(ns, ns.mulBig(AF, ns.decrypt(AA, ns), ns), ns.mulBig(ns.mulBig(AC, ns.decrypt(AD, ns), ns), new BigInteger("-1"), ns));
+		BigInteger m2_Y2=ns.addBig(ns, ns.mulBig(AD, ns.decrypt(AB, ns), ns), ns.mulBig(ns.mulBig(AA, ns.decrypt(AE, ns), ns), new BigInteger("-1"), ns));
+		
+		
+		BigInteger r_Y2=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+		BigInteger Q_Y2=r_Y2.multiply(new BigInteger(128, 64, new Random()));
+		BigInteger YY2=PSP(m1_Y2,m2_Y2,r_Y2,Q_Y2,ns);  					 //除法结果Q*（m1/m2）
+		double Y2=YY2.doubleValue()/Q_Y2.doubleValue(); 
+		
+//		double Y2=((ns.decrypt(AF,ns).doubleValue())*
+//				(ns.decrypt(AA,ns).doubleValue())-
+//				(ns.decrypt(AC,ns).doubleValue())*
+//				(ns.decrypt(AD,ns).doubleValue()))
+//				/
+//						((ns.decrypt(AD,ns).doubleValue())*
+//						(ns.decrypt(AB,ns).doubleValue())-
+//						(ns.decrypt(AA,ns).doubleValue())*
+//						(ns.decrypt(AE,ns).doubleValue())
+//				        );
+
+//		double x1=(bB*bF-bC*bE)/(bA*bE-bD*bB);
+//		double x2=(bF*bA-bC*bD)/(-bA*bE+bD*bB);
+		BigInteger BA=ns.addBig(ns, B[0][0], ns.mulBig(B[2][0], new BigInteger("-1"), ns),ns.mulBig(B[0][2], new BigInteger("-1"), ns),B[2][2]);
+		BigInteger BB=ns.addBig(ns, B[1][0], ns.mulBig(B[2][0], new BigInteger("-1"), ns),ns.mulBig(B[1][2], new BigInteger("-1"), ns),B[2][2]);
+		BigInteger BC=ns.addBig(ns, B[2][0], ns.mulBig(B[2][2], new BigInteger("-1"), ns));
+		BigInteger BD=ns.addBig(ns, B[0][1], ns.mulBig(B[2][1], new BigInteger("-1"), ns),ns.mulBig(B[0][2], new BigInteger("-1"), ns),B[2][2]);
+		BigInteger BE=ns.addBig(ns, B[1][1], ns.mulBig(B[2][1], new BigInteger("-1"), ns),ns.mulBig(B[1][2], new BigInteger("-1"), ns),B[2][2]);
+		BigInteger BF=ns.addBig(ns, B[2][1], ns.mulBig(B[2][2], new BigInteger("-1"), ns));
+	 
+		
+		
+		BigInteger m1_X1=ns.addBig(ns, ns.mulBig(BF, ns.decrypt(BB, ns), ns), ns.mulBig(ns.mulBig(BC, ns.decrypt(BE, ns), ns), new BigInteger("-1"), ns));
+		BigInteger m2_X1=ns.addBig(ns, ns.mulBig(BA, ns.decrypt(BE, ns), ns), ns.mulBig(ns.mulBig(BB, ns.decrypt(BD, ns), ns), new BigInteger("-1"), ns));
+		
+		
+		BigInteger r_X1=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+		BigInteger Q_X1=r_X1.multiply(new BigInteger(128, 64, new Random()));
+		BigInteger XX1=PSP(m1_X1,m2_X1,r_X1,Q_X1,ns);  					 //除法结果Q*（m1/m2）
+		double X1=XX1.doubleValue()/Q_X1.doubleValue(); 
+//		double X1=((ns.decrypt(BB,ns).doubleValue())*
+//				(ns.decrypt(BF,ns).doubleValue())-
+//				(ns.decrypt(BC,ns).doubleValue())*
+//				(ns.decrypt(BE,ns).doubleValue()))
+//				/
+//						((ns.decrypt(BA,ns).doubleValue())*
+//						(ns.decrypt(BE,ns).doubleValue())-
+//						(ns.decrypt(BD,ns).doubleValue())*
+//						(ns.decrypt(BB,ns).doubleValue()));
+//		//(aF*aA-aC*aD)/(-aA*aE+aD*aB)
+		BigInteger m1_X2=ns.addBig(ns, ns.mulBig(BF, ns.decrypt(BA, ns), ns), ns.mulBig(ns.mulBig(BC, ns.decrypt(BD, ns), ns), new BigInteger("-1"), ns));
+		BigInteger m2_X2=ns.addBig(ns, ns.mulBig(BD, ns.decrypt(BB, ns), ns), ns.mulBig(ns.mulBig(BA, ns.decrypt(BE, ns), ns), new BigInteger("-1"), ns));
+		
+		
+		BigInteger r_X2=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+		BigInteger Q_X2=r_X2.multiply(new BigInteger(128, 64, new Random()));
+		BigInteger XX2=PSP(m1_X2,m2_X2,r_X2,Q_X2,ns);  					 //除法结果Q*（m1/m2）
+		double X2=XX2.doubleValue()/Q_X2.doubleValue(); 
+//		double X2=((ns.decrypt(BF,ns).doubleValue())*
+//				(ns.decrypt(BA,ns).doubleValue())-
+//				(ns.decrypt(BC,ns).doubleValue())*
+//				(ns.decrypt(BD,ns).doubleValue()))
+//				/
+//						((ns.decrypt(BD,ns).doubleValue())*
+//						(ns.decrypt(BB,ns).doubleValue())-
+//						(ns.decrypt(BA,ns).doubleValue())*
+//						(ns.decrypt(BE,ns).doubleValue())
+//				        );
+	//	
+		
+		
+	   	if((x1>0&&x2>0&&(x1+x2)<1)&&(y1>0&&y2>0&&(y1+y2)<1)) {
+		System.out.printf("第%d次计算\ny1:%.12f   y2:%.12f  y3:%.12f\nY1:%.12f   Y2:%.12f   Y3:%.12f\n",nums+1,y1,y2,(1-y1-y2),Y1,Y2,(1-Y1-Y2));
+		System.out.printf("x1:%.12f   x2:%.12f  x3:%.12f\nX1:%.12f   X2:%.12f   X3:%.12f\n\n",x1,x2,(1-x1-x2),X1,X2,(1-X1-X2));
+		loss+=Math.abs(X1-x1)/(x1+X1)+Math.abs(X2-x2)/(X2+x2)+Math.abs(y1-Y1)/(y1+Y1)+Math.abs(y2-Y2)/(y2+Y2);//计算误差
+		nums++;
+		}
+		}
+		
+		 System.out.println("100次总误差："+loss);
+		
+		
+		
+	}
+	 public static BigInteger PSP(BigInteger m1,BigInteger m2,BigInteger r,BigInteger Q,Paillier ns) throws Exception
+	 {  
+
+		BigInteger S=r.multiply(Q);
+		BigInteger C6=ns.mulBig(m2, r, ns);
+		BigInteger m3=ns.decrypt(C6, ns);
+		BigInteger  temp=S.divide(m3);
+		BigInteger C4=new  BigInteger(""+temp);
+		BigInteger C3=ns.mulBig(m1, C4, ns);	
+		return ns.decrypt(C3, ns);
+	 }
+	}
