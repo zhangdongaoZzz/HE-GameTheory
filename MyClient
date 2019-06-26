@@ -1,0 +1,108 @@
+package nimadebi;
+import java.net.*;
+import java.io.*;
+import java.math.BigInteger;
+import java.util.Random;
+
+public class Client {
+	public static void main(String[] args) throws Exception {
+		Random random=new Random();	
+		double [][]a=new double[3][3];
+		double [][]b=new double[3][3];
+		for (int i=0;i<a.length;i++)
+		{
+			for(int j=0;j<a[0].length;j++)
+			{
+				a[i][j]=random.nextDouble()*1024;
+				b[i][j]=random.nextDouble()*1024;
+			}
+		}
+		
+		BigInteger [][]A=new BigInteger [3][3];
+		BigInteger [][]B=new BigInteger [3][3];
+		Paillier ns=new Paillier();
+		ns.creatpayoff(A, B,a,b,ns);
+		String A_e=new String();
+		for (int i=0;i<A.length;i++)
+		{
+			for (int j=0;j<A.length;j++)
+			{
+				A_e=A_e+A[i][j]+"a";
+			}
+		}
+		//公钥
+		A_e=A_e.substring(0, A_e.length()-1);
+        A_e=A_e+";";
+        A_e=A_e+ns.getN()+"a";
+        A_e=A_e+ns.getG();
+        //生成r，Q，传输r，S
+        BigInteger r=new BigInteger(128, 64, new Random()); //Alice 随机生成rQ
+		BigInteger Q=r.multiply(new BigInteger(512, 64, new Random()));
+		A_e=A_e+";";
+		A_e=A_e+r+"a";
+		A_e=A_e+r.multiply(Q)+"";
+        
+		///
+//		BigInteger AA=ns.addBig(ns, A[0][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+//		BigInteger AB=ns.addBig(ns, A[0][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+//		BigInteger AC=ns.addBig(ns, A[0][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+//		BigInteger AD=ns.addBig(ns, A[1][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+//		BigInteger AE=ns.addBig(ns, A[1][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+//		BigInteger AF=ns.addBig(ns, A[1][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+//	 
+//		//(aB*aF-aC*aE)/(aA*aE-aD*aB)
+//		BigInteger m1_y1=ns.addBig(ns, ns.mulBig(AB, ns.decrypt(AF, ns), ns), ns.mulBig(ns.mulBig(AC, ns.decrypt(AE, ns), ns), new BigInteger("-1"), ns));
+//		BigInteger m2_y1=ns.addBig(ns, ns.mulBig(AA, ns.decrypt(AE, ns), ns), ns.mulBig(ns.mulBig(AD, ns.decrypt(AB, ns), ns), new BigInteger("-1"), ns));
+//		
+//		System.out.println(ns.decrypt(m1_y1, ns).doubleValue()/ns.decrypt(m2_y1, ns).doubleValue());
+		
+		///
+		
+		
+		
+		long pre=System.currentTimeMillis();
+		try 
+		{
+			Socket s=new Socket("localhost",7522);
+			
+			OutputStream os=s.getOutputStream();
+			OutputStreamWriter osw=new OutputStreamWriter(os);
+			PrintWriter pw=new PrintWriter(osw,true);
+//			pw.write(A_e);
+//			pw.flush();
+			pw.println(A_e);
+			InputStream is=s.getInputStream();
+			InputStreamReader isw=new InputStreamReader (is);
+			BufferedReader br=new BufferedReader(isw);
+			
+			
+			String mess=br.readLine();
+			String []A_F=mess.split("a");
+			BigInteger AA1=new BigInteger(A_F[0]);
+			BigInteger AB1=new BigInteger(A_F[1]);
+			BigInteger AC1=new BigInteger(A_F[2]);
+			BigInteger AD1=new BigInteger(A_F[3]);
+			BigInteger AE1=new BigInteger(A_F[4]);
+			BigInteger AF1=new BigInteger(A_F[5]);
+			
+			BigInteger m1=ns.addBig(ns, ns.mulBig(AB1, ns.decrypt(AF1, ns), ns), ns.mulBig(ns.mulBig(AC1, ns.decrypt(AE1, ns), ns), new BigInteger("-1"), ns));
+			BigInteger m2=ns.addBig(ns, ns.mulBig(AA1, ns.decrypt(AE1, ns), ns), ns.mulBig(ns.mulBig(AD1, ns.decrypt(AB1, ns), ns), new BigInteger("-1"), ns));
+			
+			
+//			String []m1m2=mess.split("a");
+//			BigInteger m1=ns.decrypt(new BigInteger(m1m2[0]),ns);
+//			BigInteger m2=ns.decrypt(new BigInteger(m1m2[1]), ns);
+//			
+			
+			
+			
+			long now=System.currentTimeMillis()-pre;
+			System.out.println(now);
+			System.out.println(ns.decrypt(m1, ns).doubleValue()/
+					ns.decrypt(m2, ns).doubleValue());
+		}catch (Exception e) {
+			
+		}
+		
+}
+}
