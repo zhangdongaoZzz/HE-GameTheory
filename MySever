@@ -1,0 +1,85 @@
+package nimadebi;
+import java.net.*;
+import java.io.*;
+import java.math.BigInteger;
+import java.util.Random;
+
+public class Mysever {
+public static void main(String[] args) throws Exception {
+	
+//	try 
+//	{
+		ServerSocket ss =new ServerSocket(7522);
+		System.out.println("监听前");
+		Socket s=ss.accept();
+		
+		//从Client得到加密矩阵和公钥
+		InputStream is =s.getInputStream();
+		InputStreamReader isr=new InputStreamReader(is);
+		BufferedReader br=new BufferedReader(isr);
+		String mess=br.readLine();
+		String []messlist=mess.split(";");
+		String []matrix=messlist[0].split("a");
+		String []pubkey=messlist[1].split("a");
+		String []rS=messlist[2].split("a");
+		
+		//初始化矩阵和公钥,随即干扰rS
+		Paillier ns=new Paillier();
+		ns.setn(new BigInteger(pubkey[0]+""));
+		ns.setg(new BigInteger(pubkey[1]+""));
+		BigInteger A[][]=new BigInteger[3][3];
+		
+		for (int i=0,k=0;i<A.length;i++)
+		{		
+			for(int j=0;j<A.length;j++,k++)
+			{
+				A[i][j]=new BigInteger(matrix[k]);
+			}
+		}
+		BigInteger r=new BigInteger(rS[0]);
+		BigInteger S=new BigInteger(rS[1]);
+		
+		//考量计算时间
+		for(int i=0;i<300;i++)
+		{
+		BigInteger AA=ns.addBig(ns, A[0][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AB=ns.addBig(ns, A[0][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AC=ns.addBig(ns, A[0][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+		BigInteger AD=ns.addBig(ns, A[1][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AE=ns.addBig(ns, A[1][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AF=ns.addBig(ns, A[1][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+		}
+		
+		//计算中间结果m1,m2
+		BigInteger AA=ns.addBig(ns, A[0][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AB=ns.addBig(ns, A[0][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[0][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AC=ns.addBig(ns, A[0][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+		BigInteger AD=ns.addBig(ns, A[1][0], ns.mulBig(A[2][0], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AE=ns.addBig(ns, A[1][1], ns.mulBig(A[2][1], new BigInteger("-1"), ns),ns.mulBig(A[1][2], new BigInteger("-1"), ns),A[2][2]);
+		BigInteger AF=ns.addBig(ns, A[1][2], ns.mulBig(A[2][2], new BigInteger("-1"), ns));
+		System.out.println(AF);
+		
+		OutputStream os=s.getOutputStream();
+		OutputStreamWriter osw=new OutputStreamWriter(os);
+		PrintWriter pw=new PrintWriter(osw,true);
+		
+		pw.println(""+AA+"a"+AB+"a"+AC+"a"+AD+"a"+AE+"a"+AF);
+		
+		
+//	}catch (Exception e) {
+//		System.out.println(1);
+//		
+//	}
+		
+		
+}
+static BigInteger PSP(BigInteger m1,BigInteger m2,BigInteger r,BigInteger S,Paillier ns) throws Exception
+{  
+	BigInteger E3=ns.mulBig(m2, r, ns);
+	BigInteger m3=ns.decrypt(E3, ns);
+	BigInteger  temp=S.divide(m3);
+	BigInteger C4=new  BigInteger(""+temp);
+	BigInteger C3=ns.mulBig(m1, C4, ns);	
+	return temp;
+}
+}
